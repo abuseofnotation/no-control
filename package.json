@@ -1,0 +1,19 @@
+{
+  "name": "no-control",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run build && parcel index.html",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "spago install",
+    "build-production": "npm run build && parcel build index.html",
+    "build": "spago build",
+    "clean": "rm -rf .cache .spago .psci_modules node_modules output dist"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "parcel": "^2.0.0-rc.0"
+  }
+}
