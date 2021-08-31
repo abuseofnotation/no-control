@@ -1,45 +1,18 @@
 module Main where
 
-import Control.Monad.Loops
 import Data.Maybe
 import Data.Traversable
-import Effect.Ref
-import Effect.Timer
 import Graphics.Canvas
 import Prelude
+import Data.Traversable as Data
 import Effect (Effect)
 import Effect.Console (log)
 import Effect.Console as Effect
 import Effect.Ref as Ref
 import Prim.Row (class Nub)
-
-type Coordinates
-  = { x :: Int, y :: Int }
-
-type ObjectPosition
-  = { width :: Number
-    , height :: Number
-    , x :: Number
-    , y :: Number
-    }
-
-type GameObject a
-  = { position :: ObjectPosition
-    , params :: a
-    }
-
-type Objects
-  = Array (GameObject (Unit))
-
-type Map
-  = { cameraPosition ::
-        { width :: Int
-        , height :: Int
-        , x :: Int
-        , y :: Int
-        }
-    , objects :: Objects
-    }
+import Engine
+import Effect.Ref
+import Effect.Timer
 
 gameMap :: Map
 gameMap =
@@ -69,38 +42,17 @@ gameMap =
       ]
   }
 
-renderFrame :: Map -> Context2D -> Effect (Unit)
-renderFrame gameMap ctx =
-  traverse
-    ( \object -> fillPath ctx $ rect ctx object.position
-    )
-    gameMap.objects
-    >>= (\a -> Effect.info "foo")
-
-main :: Effect Unit
-main = do getCanvasElementById "app" >>= processCanvas
-
-width = 800.0
-
-height = 600.0
-
-processCanvas :: Maybe CanvasElement -> Effect Unit
-processCanvas (Just canvas) = init (canvas)
-
-processCanvas Nothing = log "No canvas"
-
-step :: Map -> Context2D -> Effect Map
-step gameMap ctx = do
-  pure
-    { cameraPosition: gameMap.cameraPosition
-    , objects: (map updateObject gameMap.objects)
-    }
+step :: Map -> Map
+step gameMap =
+  { cameraPosition: gameMap.cameraPosition
+  , objects: (map updateObject gameMap.objects)
+  }
 
 updateObject :: forall a. GameObject (a) -> GameObject (a)
 updateObject object =
   ( { position:
-        { x: position.x - 1.0
-        , y: position.y
+        { x: position.x
+        , y: position.y + 1.00
         , width: position.width
         , height: position.height
         }
@@ -110,16 +62,29 @@ updateObject object =
   where
   position = object.position
 
-init :: CanvasElement -> Effect Unit
-init canvas = do
-  setCanvasDimensions canvas { width, height }
-  ctx <- getContext2D canvas
-  mapState <- Ref.new gameMap
-  _ <-
-    setInterval 100 do
-      oldMap <- Ref.read mapState
-      newMap <- step oldMap ctx
-      Ref.write newMap mapState
-      renderFrame newMap ctx
+renderFrame :: Map -> Context2D -> Effect (Map)
+renderFrame gameMap ctx = do
+  clearRect ctx { x: 0.0, y: 0.0, width: width, height: height }
+  Data.traverse_ (\object -> fillPath ctx $ rect ctx object.position)
+    gameMap.objects
+  pure gameMap
+
+main :: Effect Unit
+main = do
+  canvas <- getCanvasElementById "app"
+  case canvas of
+    Nothing -> log "No canvas"
+    Just canvas -> do
+      setCanvasDimensions canvas { width, height }
+      ctx <- getContext2D canvas
+      _ <-
+        loop
+          ( \oldMap ->
+              renderFrame (step oldMap) ctx
+          )
+          gameMap
       pure unit
-  pure unit
+
+width = 800.0
+
+height = 600.0
