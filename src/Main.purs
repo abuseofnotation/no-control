@@ -1,18 +1,21 @@
 module Main where
 
+import Data.Array
 import Data.Maybe
 import Data.Traversable
+import Effect.Ref
+import Effect.Timer
 import Graphics.Canvas
+import NoControl.Engine
 import Prelude
+import Data.Array.NonEmpty (length, toArray)
 import Data.Traversable as Data
 import Effect (Effect)
+import Effect.Class.Console (logShow)
 import Effect.Console (log)
 import Effect.Console as Effect
 import Effect.Ref as Ref
 import Prim.Row (class Nub)
-import Engine
-import Effect.Ref
-import Effect.Timer
 
 gameMap :: Map
 gameMap =
@@ -26,17 +29,41 @@ gameMap =
       [ { position:
             { x: 50.0
             , y: 50.0
-            , width: 100.0
-            , height: 100.0
+            , width: 5.0
+            , height: 5.0
             }
+        , energy: { x: 3.0, y: -2.0 }
+        , characteristics: { maxFallSpeed: 10.0 }
         , params: unit
         }
       , { position:
-            { x: 100.0
-            , y: 100.0
-            , width: 100.0
-            , height: 100.0
+            { x: 150.0
+            , y: 250.0
+            , width: 5.0
+            , height: 5.0
             }
+        , energy: { x: 9.0, y: -20.0 }
+        , characteristics: { maxFallSpeed: 10.0 }
+        , params: unit
+        }
+      , { position:
+            { x: 150.0
+            , y: 250.0
+            , width: 5.0
+            , height: 5.0
+            }
+        , energy: { x: 19.0, y: -10.0 }
+        , characteristics: { maxFallSpeed: 10.0 }
+        , params: unit
+        }
+      , { position:
+            { x: 150.0
+            , y: 450.0
+            , width: 500.0
+            , height: 15.0
+            }
+        , energy: { x: 0.0, y: 0.0 }
+        , characteristics: { maxFallSpeed: 0.0 }
         , params: unit
         }
       ]
@@ -45,28 +72,15 @@ gameMap =
 step :: Map -> Map
 step gameMap =
   { cameraPosition: gameMap.cameraPosition
-  , objects: (map updateObject gameMap.objects)
+  , objects: (map updateObjectPosition gameMap.objects)
   }
 
-updateObject :: forall a. GameObject (a) -> GameObject (a)
-updateObject object =
-  ( { position:
-        { x: position.x
-        , y: position.y + 1.00
-        , width: position.width
-        , height: position.height
-        }
-    , params: object.params
-    }
-  )
-  where
-  position = object.position
-
-renderFrame :: Map -> Context2D -> Effect (Map)
-renderFrame gameMap ctx = do
+renderFrame :: Context2D -> Map -> Effect (Map)
+renderFrame ctx gameMap = do
   clearRect ctx { x: 0.0, y: 0.0, width: width, height: height }
   Data.traverse_ (\object -> fillPath ctx $ rect ctx object.position)
     gameMap.objects
+  --logShow (map (\a -> length a) (overlappingSegments gameMap.objects))
   pure gameMap
 
 main :: Effect Unit
@@ -80,7 +94,7 @@ main = do
       _ <-
         loop
           ( \oldMap ->
-              renderFrame (step oldMap) ctx
+              renderFrame ctx (step oldMap)
           )
           gameMap
       pure unit
