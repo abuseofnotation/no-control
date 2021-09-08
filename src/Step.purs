@@ -8,12 +8,46 @@ import Debug (spy, trace)
 import NoControl.Engine (Map, Objects, GameObject)
 import NoControl.Engine.Collisions (handleObjectCollisions)
 import NoControl.Engine.Step (updateObject)
+import Prim.Boolean
 
 step :: Map ObjectType -> Map ObjectType
 step gameMap =
   { cameraPosition: gameMap.cameraPosition
-  , objects: handleObjectCollisions handleCollisions (map updateObject gameMap.objects)
+  , objects: updateObjects gameMap.objects
   }
+
+updateObjects = updateCamera <<< handleObjectCollisions handleCollisions <<< map updateObject
+
+updateCamera objects = map (updateCoordinates player) objects
+  where
+  player = find isPlayer objects
+
+isPlayer o = case o.type of
+  Player -> true
+  _ -> false
+
+updateCoordinates :: Maybe (GameObject ObjectType) -> GameObject ObjectType -> GameObject ObjectType
+updateCoordinates (Just player) a =
+  { position:
+      { x: a.position.x - player.position.x + 400.0
+      , y: a.position.y - player.position.y + 300.0
+      , width:
+          a.position.width
+      , height:
+          a.position.height
+      }
+  , characteristics: a.characteristics
+  , type:
+      a.type
+  , energy:
+      { x:
+          a.energy.x
+      , y:
+          a.energy.y
+      }
+  }
+
+updateCoordinates Nothing a = a
 
 bounce :: forall a. GameObject a -> GameObject a -> GameObject a
 bounce ground a =
