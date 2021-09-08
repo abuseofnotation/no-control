@@ -5,8 +5,10 @@ You can edit this file as you like.
 { name = "my-project"
 , dependencies =
   [ "arrays"
+  , "assert"
   , "canvas"
   , "console"
+  , "debug"
   , "effect"
   , "foldable-traversable"
   , "js-timers"

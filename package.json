@@ -9,6 +9,7 @@
     "install": "spago install",
     "build-production": "npm run build && parcel build index.html",
     "build": "spago build",
+    "watch": "spago bundle-app --watch --purs-args --json-errors",
     "clean": "rm -rf .cache .spago .psci_modules node_modules output dist"
   },
   "author": "",
