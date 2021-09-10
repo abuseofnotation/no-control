@@ -11,12 +11,17 @@ You can edit this file as you like.
   , "debug"
   , "effect"
   , "foldable-traversable"
+  , "integers"
   , "js-timers"
   , "maybe"
   , "monad-loops"
+  , "ordered-collections"
   , "prelude"
   , "psci-support"
   , "refs"
+  , "web-events"
+  , "web-html"
+  , "web-uievents"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

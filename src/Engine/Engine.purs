@@ -42,4 +42,6 @@ type Map a
         , y :: Int
         }
     , objects :: Objects a
+    , foreground :: Objects Unit
+    , background :: Objects Unit
     }
