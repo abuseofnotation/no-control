@@ -39,7 +39,7 @@ loop :: forall a. (a -> Set.Set String -> Effect a) -> a -> Effect (IntervalId)
 loop fn beginningMap = do
   keys <- keyReader
   mapState <- Ref.new beginningMap
-  setInterval 10 do
+  setInterval 20 do
     pressedKeys <- Ref.read keys
     oldMap <- Ref.read mapState
     newMap <- fn oldMap pressedKeys

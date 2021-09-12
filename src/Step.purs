@@ -14,7 +14,7 @@ import NoControl.Engine.Step (updateObject)
 import Web.HTML.HTMLCanvasElement (height, width)
 import Web.HTML.HTMLProgressElement (position)
 
-jumpPower = 20.0
+jumpPower = 15.0
 
 walkingPower = 5.0
 

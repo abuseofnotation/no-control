@@ -2312,7 +2312,7 @@ var PS = {};
       };
       throw new Error("Failed pattern match at Main.Step (line 102, column 13 - line 106, column 18): " + [ o.type.constructor.name ]);
   });
-  var jumpPower = 20.0;
+  var jumpPower = 15.0;
   var jumpControlPower = 0.2;
   var movePlayer = function (keys) {
       return function (a) {
@@ -2645,7 +2645,7 @@ var PS = {};
           return function __do() {
               var keys = keyReader();
               var mapState = Effect_Ref["new"](beginningMap)();
-              return Effect_Timer.setInterval(10)(function __do() {
+              return Effect_Timer.setInterval(20)(function __do() {
                   var pressedKeys = Effect_Ref.read(keys)();
                   var oldMap = Effect_Ref.read(mapState)();
                   var newMap = fn(oldMap)(pressedKeys)();
