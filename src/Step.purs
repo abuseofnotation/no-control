@@ -5,11 +5,12 @@ import Main.Types
 import Prelude
 import Prim.Boolean
 import Data.Array (findIndex, modifyAt)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set as Set
 import Debug (spy, trace)
-import Main.Level (groundZero, playerInitialState, towerFloorHeight)
-import NoControl.Engine (GameObject, Map, Objects, ObjectPosition)
+import Main.Level (groundZero, playerInitialState, towerDistance, towerFloorHeight, towers)
+import NoControl.Engine (Map, ObjectPosition, Objects, GameObject)
 import NoControl.Engine.Collisions (handleObjectCollisions)
 import NoControl.Engine.Render (cameraFollowObject)
 import NoControl.Engine.Step (updateObject)
@@ -22,27 +23,62 @@ walkingPower = 5.0
 
 jumpControlPower = 0.2
 
+bombs =
+  map
+    ( \i ->
+        { position:
+            { x: (toNumber i) * towerDistance - 30.00
+            , y: 0.0
+            , width: 20.0
+            , height: 20.0
+            }
+        , energy: { x: -2.0, y: 0.0 }
+        , characteristics:
+            { bounceability:
+                0.6
+            , maxFallSpeed:
+                100.0
+            , color: "blue"
+            , distance: 1.0
+            }
+        , type: Bomb
+        }
+    )
+    (range 1 towers)
+
 step :: Map ObjectType -> Set.Set String -> Map ObjectType
 step gameMap keys =
   { cameraPosition: cameraFollowPlayer player gameMap.cameraPosition
-  , objects: respawnPlayerIfNeeded objects player
+  , objects: updateObjects player keys gameMap.objects
   , foreground: gameMap.foreground
   , background: gameMap.background
   }
   where
   player = find isPlayer gameMap.objects
 
-  objects = updateObjects keys gameMap.objects
+updateObjects player keys =
+  map updateObject
+    >>> handleObjectCollisions handleCollisions
+    >>> moveObjects keys
+    >>> filter (\o -> o.position.y < 10000.0)
+    >>> respawnPlayerIfNeeded
+    >>> dropBombsIfNeeded
 
-respawnPlayerIfNeeded o (Just player) =
-  if player.position.y > 10000.0 then
-    fromMaybe o (modifyAt playerIndex (\_ -> playerInitialState) o)
+respawnPlayerIfNeeded :: Objects ObjectType -> Objects ObjectType
+respawnPlayerIfNeeded o = case p of
+  Just player -> o
+  Nothing -> concat [ [ playerInitialState ], o ]
+  where
+  p = find isPlayer o
+
+dropBombsIfNeeded :: Objects ObjectType -> Objects ObjectType
+dropBombsIfNeeded o =
+  if length currentBombs < 50 then
+    trace bombs \_ -> concat [ o, bombs ]
   else
     o
   where
-  playerIndex = fromMaybe (-1) (findIndex isPlayer o)
-
-respawnPlayerIfNeeded o Nothing = o
+  currentBombs = filter isBomb o
 
 cameraFollowPlayer player =
   cameraFollowObject player
@@ -56,11 +92,6 @@ cameraFollowPlayer player =
           else
             camera
       )
-
-updateObjects keys =
-  map updateObject
-    >>> handleObjectCollisions handleCollisions
-    >>> moveObjects keys
 
 moveObjects :: Set.Set String -> Objects ObjectType -> Objects ObjectType
 moveObjects keys o = case findIndex isPlayer o of
@@ -97,6 +128,10 @@ isPlayer o = case o.type of
   Player -> true
   _ -> false
 
+isBomb o = case o.type of
+  Bomb -> true
+  _ -> false
+
 bounce :: forall a. GameObject a -> GameObject a -> GameObject a
 bounce ground a =
   { position:
@@ -128,8 +163,8 @@ sortByType =
   sortWith
     ( \o -> case o.type of
         Ground -> 1
-        Player -> 2
-        Bomb -> 3
+        Bomb -> 2
+        Player -> 3
         None -> 4
     )
 
