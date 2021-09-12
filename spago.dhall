@@ -16,7 +16,6 @@ You can edit this file as you like.
   , "js-timers"
   , "lcg"
   , "maybe"
-  , "monad-loops"
   , "ordered-collections"
   , "prelude"
   , "psci-support"

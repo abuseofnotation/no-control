@@ -4,9 +4,11 @@ import Data.Array
 import Main.Types
 import Prelude
 import Prim.Boolean
+import Data.Array (findIndex, modifyAt)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set as Set
 import Debug (spy, trace)
+import Main.Level (groundZero, playerInitialState, towerFloorHeight)
 import NoControl.Engine (GameObject, Map, Objects, ObjectPosition)
 import NoControl.Engine.Collisions (handleObjectCollisions)
 import NoControl.Engine.Render (cameraFollowObject)
@@ -22,13 +24,38 @@ jumpControlPower = 0.2
 
 step :: Map ObjectType -> Set.Set String -> Map ObjectType
 step gameMap keys =
-  { cameraPosition: cameraFollowObject player gameMap.cameraPosition
-  , objects: updateObjects keys gameMap.objects
+  { cameraPosition: cameraFollowPlayer player gameMap.cameraPosition
+  , objects: respawnPlayerIfNeeded objects player
   , foreground: gameMap.foreground
   , background: gameMap.background
   }
   where
   player = find isPlayer gameMap.objects
+
+  objects = updateObjects keys gameMap.objects
+
+respawnPlayerIfNeeded o (Just player) =
+  if player.position.y > 10000.0 then
+    fromMaybe o (modifyAt playerIndex (\_ -> playerInitialState) o)
+  else
+    o
+  where
+  playerIndex = fromMaybe (-1) (findIndex isPlayer o)
+
+respawnPlayerIfNeeded o Nothing = o
+
+cameraFollowPlayer player =
+  cameraFollowObject player
+    >>> ( \camera ->
+          if camera.y + camera.height > groundZero then
+            { x: camera.x
+            , y: groundZero - camera.height
+            , width: camera.width
+            , height: camera.height
+            }
+          else
+            camera
+      )
 
 updateObjects keys =
   map updateObject

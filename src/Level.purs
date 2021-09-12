@@ -18,26 +18,28 @@ towerFloorWidth = 400.0
 
 towers = 10
 
+groundZero = towerFloorHeight * (toNumber (towerFloors + 1))
+
 type FloorGenerator a
   = ObjectPosition -> Objects a
 
-ground =
+playerInitialState =
   { position:
-      { y: towerFloorHeight * (toNumber (towerFloors + 3))
-      , x: 0.0
-      , width: 1000.0
-      , height: 190.0
+      { x: towerFloorWidth / 2.0
+      , y: 0.0
+      , width: 14.0
+      , height: 50.0
       }
-  , energy: { x: 0.0, y: 0.0 }
+  , energy: { x: 1.0, y: -10.0 }
   , characteristics:
       { bounceability:
           0.0
       , maxFallSpeed:
-          0.0
+          10.0
       , color: "red"
       , distance: 1.0
       }
-  , type: Ground
+  , type: Player
   }
 
 floorGround :: FloorGenerator (ObjectType)
@@ -211,24 +213,7 @@ generateFloor fn towerNumber floorNumber =
 generateObjects :: Objects ObjectType
 generateObjects =
   concat
-    [ [ { position:
-            { x: towerFloorWidth / 2.0
-            , y: 0.0
-            , width: 14.0
-            , height: 50.0
-            }
-        , energy: { x: 1.0, y: -10.0 }
-        , characteristics:
-            { bounceability:
-                0.0
-            , maxFallSpeed:
-                10.0
-            , color: "red"
-            , distance: 1.0
-            }
-        , type: Player
-        }
-      -- ground
+    [ [ playerInitialState
       ]
     , ( generateTowers
           floorGround

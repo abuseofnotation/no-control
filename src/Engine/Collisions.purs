@@ -24,14 +24,20 @@ horizontalOverlap :: forall a. GameObject (a) -> GameObject (a) -> Boolean
 horizontalOverlap left right = (left.position.x + left.position.width) > right.position.x
 
 verticalOverlap :: forall a. GameObject (a) -> GameObject (a) -> Boolean
-verticalOverlap left right = (left.position.y + left.position.height) > right.position.y
+verticalOverlap down up = (down.position.y + down.position.height) > up.position.y
 
 sortByX = sortWith \obj -> obj.position.x
 
 sortByY = sortWith \obj -> obj.position.y
 
 overlappingSegments :: forall a. Objects a -> Array (Objects a)
-overlappingSegments o = segmentBy horizontalOverlap (sortByX o) >>= (\o -> segmentBy verticalOverlap (sortByY o))
+overlappingSegments o =
+  segmentBy horizontalOverlap (sortByX o) >>= (\o -> segmentBy verticalOverlap (sortByY o))
+    -- Have to run the horizontal overlap the second time, as several objects (more than two)
+    
+    -- may be in one segment without actually overlapping
+    
+    >>= (\o -> segmentBy horizontalOverlap (sortByX o))
 
 type HandleCollision a
   = Objects a -> Objects a
