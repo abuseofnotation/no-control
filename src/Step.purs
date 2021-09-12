@@ -7,25 +7,33 @@ import Prim.Boolean
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set as Set
 import Debug (spy, trace)
-import NoControl.Engine (Map, Objects, GameObject)
+import NoControl.Engine (GameObject, Map, Objects, ObjectPosition)
 import NoControl.Engine.Collisions (handleObjectCollisions)
+import NoControl.Engine.Render (cameraFollowObject)
 import NoControl.Engine.Step (updateObject)
+import Web.HTML.HTMLCanvasElement (height, width)
+import Web.HTML.HTMLProgressElement (position)
+
+jumpPower = 20.0
+
+walkingPower = 5.0
+
+jumpControlPower = 0.2
 
 step :: Map ObjectType -> Set.Set String -> Map ObjectType
 step gameMap keys =
-  { cameraPosition: gameMap.cameraPosition
-  , objects: updateObjects player keys gameMap.objects
-  , foreground: updateCamera player gameMap.foreground
-  , background: updateCamera player gameMap.background
+  { cameraPosition: cameraFollowObject player gameMap.cameraPosition
+  , objects: updateObjects keys gameMap.objects
+  , foreground: gameMap.foreground
+  , background: gameMap.background
   }
   where
   player = find isPlayer gameMap.objects
 
-updateObjects player keys =
+updateObjects keys =
   map updateObject
     >>> handleObjectCollisions handleCollisions
     >>> moveObjects keys
-    >>> updateCamera player
 
 moveObjects :: Set.Set String -> Objects ObjectType -> Objects ObjectType
 moveObjects keys o = case findIndex isPlayer o of
@@ -40,7 +48,7 @@ movePlayer keys a =
       a.type
   , energy:
       { x:
-          if Set.member "ArrowRight" (trace keys \_ -> keys) then
+          if Set.member "ArrowRight" keys then
             a.energy.x + speed
           else if Set.member "ArrowLeft" keys then
             a.energy.x - speed
@@ -48,7 +56,7 @@ movePlayer keys a =
             a.energy.x
       , y:
           if (Set.member "ArrowUp" keys && onGround) then
-            a.energy.y - 20.0
+            a.energy.y - jumpPower
           else
             a.energy.y
       }
@@ -56,37 +64,11 @@ movePlayer keys a =
   where
   onGround = a.energy.y == 0.0
 
-  speed = if onGround then 10.0 else 1.0
-
-updateCamera :: forall a. Maybe (GameObject ObjectType) -> Objects a -> Objects a
-updateCamera player objects = map (updateCoordinates player) objects
+  speed = if onGround then walkingPower else jumpControlPower
 
 isPlayer o = case o.type of
   Player -> true
   _ -> false
-
-updateCoordinates :: forall a. Maybe (GameObject ObjectType) -> GameObject a -> GameObject a
-updateCoordinates (Just player) a =
-  { position:
-      { x: a.position.x - (player.position.x - 400.0) * a.characteristics.distance
-      , y: a.position.y - (player.position.y - 300.0) * a.characteristics.distance
-      , width:
-          a.position.width
-      , height:
-          a.position.height
-      }
-  , characteristics: a.characteristics
-  , type:
-      a.type
-  , energy:
-      { x:
-          a.energy.x
-      , y:
-          a.energy.y
-      }
-  }
-
-updateCoordinates Nothing a = a
 
 bounce :: forall a. GameObject a -> GameObject a -> GameObject a
 bounce ground a =

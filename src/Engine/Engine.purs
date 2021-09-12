@@ -37,12 +37,7 @@ type Objects a
   = Array (GameObject (a))
 
 type Map a
-  = { cameraPosition ::
-        { width :: Int
-        , height :: Int
-        , x :: Int
-        , y :: Int
-        }
+  = { cameraPosition :: ObjectPosition
     , objects :: Objects a
     , foreground :: Objects Unit
     , background :: Objects Unit

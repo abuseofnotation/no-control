@@ -1,0 +1,39 @@
+{
+  "name": "purescript-pseudo-random",
+  "license": "MIT",
+  "description": "A pseudo random value generator like System.Random in Haskell.",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/opyapeus/purescript-pseudo-random.git"
+  },
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-prelude": "^4.1.1",
+    "purescript-console": "^4.2.0",
+    "purescript-effect": "^2.0.1",
+    "purescript-lcg": "^2.0.0",
+    "purescript-arrays": "^5.3.0",
+    "purescript-st": "^4.0.0"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^4.0.0",
+    "purescript-quickcheck": "^6.1.0"
+  },
+  "homepage": "https://github.com/opyapeus/purescript-pseudo-random",
+  "version": "0.2.2",
+  "_release": "0.2.2",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.2.2",
+    "commit": "868fb69099ec52c139ad7bb225d4e968cf47a4aa"
+  },
+  "_source": "https://github.com/opyapeus/purescript-pseudo-random.git",
+  "_target": "^0.2.2",
+  "_originalSource": "purescript-pseudo-random",
+  "_direct": true
+}

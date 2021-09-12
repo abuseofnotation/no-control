@@ -21,6 +21,25 @@ towers = 10
 type FloorGenerator a
   = ObjectPosition -> Objects a
 
+ground =
+  { position:
+      { y: towerFloorHeight * (toNumber (towerFloors + 3))
+      , x: 0.0
+      , width: 1000.0
+      , height: 190.0
+      }
+  , energy: { x: 0.0, y: 0.0 }
+  , characteristics:
+      { bounceability:
+          0.0
+      , maxFallSpeed:
+          0.0
+      , color: "red"
+      , distance: 1.0
+      }
+  , type: Ground
+  }
+
 floorGround :: FloorGenerator (ObjectType)
 floorGround position =
   [ emptyObject Ground
@@ -33,7 +52,7 @@ floorGround position =
       , height:
           1.0
       }
-      "white"
+      "black"
   ]
 
 backgroundDecor =
@@ -191,34 +210,37 @@ generateFloor fn towerNumber floorNumber =
 
 generateObjects :: Objects ObjectType
 generateObjects =
-  cons
-    { position:
-        { x: towerFloorWidth / 2.0
-        , y: 0.0
-        , width: 25.0
-        , height: 50.0
+  concat
+    [ [ { position:
+            { x: towerFloorWidth / 2.0
+            , y: 0.0
+            , width: 14.0
+            , height: 50.0
+            }
+        , energy: { x: 1.0, y: -10.0 }
+        , characteristics:
+            { bounceability:
+                0.0
+            , maxFallSpeed:
+                10.0
+            , color: "red"
+            , distance: 1.0
+            }
+        , type: Player
         }
-    , energy: { x: 1.0, y: -10.0 }
-    , characteristics:
-        { bounceability:
-            0.0
-        , maxFallSpeed:
-            10.0
-        , color: "red"
-        , distance: 1.0
-        }
-    , type: Player
-    }
-    ( generateTowers
-        floorGround
-    )
+      -- ground
+      ]
+    , ( generateTowers
+          floorGround
+      )
+    ]
 
 generateMap =
   { cameraPosition:
-      { width: 800
-      , height: 600
-      , x: 0
-      , y: 0
+      { width: 1000.0
+      , height: 800.0
+      , x: 0.0
+      , y: 0.0
       }
   , objects: generateObjects
   , foreground: concat [ (generateTowers decor) ]

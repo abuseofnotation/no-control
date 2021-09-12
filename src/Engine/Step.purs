@@ -1,9 +1,10 @@
 module NoControl.Engine.Step where
 
-import Prelude
 import NoControl.Engine
+import Prelude
+import Data.Maybe (Maybe)
 
-gravityVector = { x: 0.0, y: 0.999 }
+gravityVector = { x: 0.0, y: 0.555 }
 
 updateObjectEnergy :: forall a. GameObject (a) -> Vector
 updateObjectEnergy o =

@@ -23,17 +23,13 @@ import Prim.Row (class Nub)
 gameMap :: Map ObjectType
 gameMap = generateMap
 
-width = 800.0
-
-height = 600.0
-
 main :: Effect Unit
 main = do
   canvas <- getCanvasElementById "app"
   case canvas of
     Nothing -> log "No canvas"
     Just canvas -> do
-      setCanvasDimensions canvas { width, height }
+      setCanvasDimensions canvas { width: gameMap.cameraPosition.width, height: gameMap.cameraPosition.height }
       ctx <- getContext2D canvas
       _ <-
         loop
