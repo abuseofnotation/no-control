@@ -22,6 +22,8 @@ type ObjectCharacteristics
         Number
     , bounceability ::
         Number
+    , color :: String
+    , distance :: Number
     }
 
 type GameObject a

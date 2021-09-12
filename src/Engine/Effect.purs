@@ -13,7 +13,7 @@ import Effect as NoControl.Engine
 import Effect.Console (logShow)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
-import Graphics.Canvas (Context2D, clearRect, fillPath, rect)
+import Graphics.Canvas (Context2D, clearRect, fillPath, rect, setFillStyle)
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (window)
 import Web.HTML.Window (toEventTarget)
@@ -53,11 +53,19 @@ loop fn beginningMap = do
     Ref.write newMap mapState
     pure unit
 
+renderLayer :: forall a. Context2D -> Objects a -> Effect Unit
+renderLayer ctx o =
+  Data.traverse_
+    ( \object -> do
+        setFillStyle ctx object.characteristics.color
+        fillPath ctx $ rect ctx object.position
+    )
+    o
+
 renderFrame :: forall a. Context2D -> Map a -> Effect (Map a)
 renderFrame ctx gameMap = do
   clearRect ctx { x: 0.0, y: 0.0, width: width, height: height }
-  Data.traverse_ (\object -> fillPath ctx $ rect ctx object.position)
-    gameMap.objects
-  Data.traverse_ (\object -> fillPath ctx $ rect ctx object.position)
-    gameMap.foreground
+  renderLayer ctx gameMap.background
+  renderLayer ctx gameMap.objects
+  renderLayer ctx gameMap.foreground
   pure gameMap

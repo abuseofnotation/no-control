@@ -68,8 +68,8 @@ isPlayer o = case o.type of
 updateCoordinates :: forall a. Maybe (GameObject ObjectType) -> GameObject a -> GameObject a
 updateCoordinates (Just player) a =
   { position:
-      { x: a.position.x - player.position.x + 400.0
-      , y: a.position.y - player.position.y + 300.0
+      { x: a.position.x - (player.position.x - 400.0) * a.characteristics.distance
+      , y: a.position.y - (player.position.y - 300.0) * a.characteristics.distance
       , width:
           a.position.width
       , height:

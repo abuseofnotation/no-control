@@ -3,7 +3,7 @@ module NoControl.Engine.Step where
 import Prelude
 import NoControl.Engine
 
-gravityVector = { x: 0.0, y: 1.0 }
+gravityVector = { x: 0.0, y: 0.999 }
 
 updateObjectEnergy :: forall a. GameObject (a) -> Vector
 updateObjectEnergy o =

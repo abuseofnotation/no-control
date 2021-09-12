@@ -1,11 +1,12 @@
 module Main.Level where
 
 import Prelude
-import Data.Array (cons, range)
+import Data.Array (concat, cons, range)
 import Data.Int (toNumber)
 import Main.Types (ObjectType(..))
 import NoControl.Engine (ObjectPosition, Objects, GameObject)
 import Web.HTML.HTMLCanvasElement (height)
+import Web.HTML.HTMLProgressElement (position)
 
 towerDistance = 900.0
 
@@ -32,6 +33,58 @@ floorGround position =
       , height:
           1.0
       }
+      "white"
+  ]
+
+backgroundDecor =
+  [ { position:
+        { x: 0.0
+        , y: 0.0
+        , width: 2000.0
+        , height: 1600.0
+        }
+    , energy: { x: 0.0, y: 0.0 }
+    , characteristics:
+        { bounceability:
+            0.0
+        , maxFallSpeed: 0.0
+        , color: "black"
+        , distance: 0.000001
+        }
+    , type: unit
+    }
+  , { position:
+        { x: -100.0
+        , y: 100.0
+        , width: 200.0
+        , height: 1600.0
+        }
+    , energy: { x: 0.0, y: 0.0 }
+    , characteristics:
+        { bounceability:
+            0.0
+        , maxFallSpeed: 0.0
+        , color: "darkslategrey"
+        , distance: 0.1
+        }
+    , type: unit
+    }
+  , { position:
+        { x: 600.0
+        , y: 100.0
+        , width: 200.0
+        , height: 1600.0
+        }
+    , energy: { x: 0.0, y: 0.0 }
+    , characteristics:
+        { bounceability:
+            0.0
+        , maxFallSpeed: 0.0
+        , color: "darkslategrey"
+        , distance: 0.1
+        }
+    , type: unit
+    }
   ]
 
 decor :: FloorGenerator Unit
@@ -47,6 +100,7 @@ decor position =
       , height:
           10.0
       }
+      "slategrey"
   --floor
   , emptyObject unit
       { x:
@@ -58,6 +112,7 @@ decor position =
       , height:
           30.0
       }
+      "slategrey"
   --left end
   , emptyObject unit
       { x:
@@ -69,6 +124,7 @@ decor position =
       , height:
           position.height
       }
+      "slategrey"
   -- right end
   , emptyObject unit
       { x:
@@ -80,6 +136,7 @@ decor position =
       , height:
           position.height
       }
+      "slategrey"
   -- middle
   , emptyObject unit
       { x:
@@ -91,6 +148,12 @@ decor position =
       , height:
           position.height
       }
+      "slategrey"
+  ]
+
+background :: FloorGenerator Unit
+background position =
+  [ emptyObject unit position "palegoldenrod"
   ]
 
 generateTowers :: forall a. FloorGenerator a -> Objects a
@@ -99,14 +162,16 @@ generateTowers fn = bind (range 0 towers) (generateTower fn)
 generateTower :: forall a. FloorGenerator a -> Int -> Objects a
 generateTower fn towerNumber = bind (range 0 towerFloors) (generateFloor fn towerNumber)
 
-emptyObject :: forall a. a -> ObjectPosition -> GameObject a
-emptyObject objectType position =
+emptyObject :: forall a. a -> ObjectPosition -> String -> GameObject a
+emptyObject objectType position color =
   { position: position
   , energy: { x: 0.0, y: 0.0 }
   , characteristics:
       { bounceability:
           0.0
       , maxFallSpeed: 0.0
+      , color: color
+      , distance: 1.0
       }
   , type: objectType
   }
@@ -139,6 +204,8 @@ generateObjects =
             0.0
         , maxFallSpeed:
             10.0
+        , color: "red"
+        , distance: 1.0
         }
     , type: Player
     }
@@ -154,6 +221,6 @@ generateMap =
       , y: 0
       }
   , objects: generateObjects
-  , foreground: (generateTowers decor)
-  , background: []
+  , foreground: concat [ (generateTowers decor) ]
+  , background: concat [ backgroundDecor, (generateTowers background) ]
   }

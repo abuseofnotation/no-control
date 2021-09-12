@@ -13,7 +13,7 @@ import Test.Assert (assert)
 o position =
   { position
   , energy: { x: 3.0, y: -2.0 }
-  , characteristics: { maxFallSpeed: 10.0, bounceability: 0.0 }
+  , characteristics: { maxFallSpeed: 10.0, bounceability: 0.0, color: "red", distance: 1.0 }
   , type: None
   }
 
