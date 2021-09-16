@@ -4,6 +4,7 @@ import Data.Array
 import NoControl.Engine
 import NoControl.Engine.Collisions
 import Prelude
+import Debug (spy, trace)
 import Effect (Effect)
 import Effect.Class.Console (log, logShow)
 import Effect.Class.Console as Effect
@@ -38,28 +39,34 @@ overlappingObjects =
   , o ({ x: 20.0, y: 20.0, width: 10.0, height: 10.0 })
   ]
 
+otherObjects =
+  [ o ({ x: 29.0, y: 0.0, width: 1.0, height: 1.0 })
+  ]
+
 otherOverlappingObjects =
   [ o ({ x: 0.0, y: 30.0, width: 21.0, height: 21.0 })
   , o ({ x: 20.0, y: 40.0, width: 10.0, height: 10.0 })
   ]
+
+print a = trace a \_ -> a
+
+assertLength a l = assert (length (print a) == l)
 
 main :: Effect Unit
 main = do
   assert
     -- HorizontalOverlap: horizontally overlapping objects are put into one segment
     ( length
-        ( segmentBy horizontalOverlap
-            ( sortByX horizontallyOverlappingObjects
-            )
+        ( segment horizontal
+            horizontallyOverlappingObjects
         )
         == 1
     )
   assert
     -- HorizontalOverlap: non-overlapping objects are left in two separate segments
     ( length
-        ( segmentBy horizontalOverlap
-            ( sortByX nonOverlappingObjects
-            )
+        ( segment horizontal
+            nonOverlappingObjects
         )
         == 2
     )
@@ -87,3 +94,21 @@ main = do
         )
         == 2
     )
+  let
+    objects = concat [ overlappingObjects, otherObjects ]
+  --FullOverlap: overlapping objects are in one segment
+  assertLength
+    ( overlappingSegments
+        objects
+    )
+    2
+  assertLength
+    ( segment horizontal
+        objects
+    )
+    1
+  assertLength
+    ( segment vertical
+        objects
+    )
+    1

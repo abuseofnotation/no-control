@@ -1,11 +1,13 @@
 module Main.Level where
 
 import Prelude
-import Data.Array (concat, cons, range)
+import Data.Array (concat, cons, fold, foldl, range, scanl)
 import Data.Int (toNumber)
+import Data.Tuple (Tuple(..), fst, snd)
 import Effect (Effect)
 import Main.Types (ObjectType(..))
 import NoControl.Engine (GameObject, ObjectPosition, Objects, Map)
+import Random.PseudoRandom (Seed)
 import Web.HTML.HTMLCanvasElement (height)
 import Web.HTML.HTMLProgressElement (position)
 
@@ -22,7 +24,7 @@ towers = 20
 groundZero = towerFloorHeight * (toNumber (towerFloors + 2))
 
 type FloorGenerator a
-  = ObjectPosition -> Objects a
+  = ObjectPosition -> Seed -> Objects a
 
 playerInitialState =
   { position:
@@ -44,7 +46,7 @@ playerInitialState =
   }
 
 floorGround :: FloorGenerator (ObjectType)
-floorGround position =
+floorGround position _ =
   [ emptyObject Ground
       { x:
           position.x
@@ -56,6 +58,22 @@ floorGround position =
           10.0
       }
       "black"
+      1.0
+  ]
+
+enemies :: FloorGenerator (ObjectType)
+enemies position seed =
+  [ emptyObject None
+      { x:
+          position.x + 60.0
+      , y:
+          position.y - 150.0
+      , width:
+          10.0
+      , height:
+          10.0
+      }
+      "purple"
       1.0
   ]
 
@@ -122,7 +140,7 @@ backgroundDecor =
 decorObject position = emptyObject unit position "slategrey" 1.0
 
 decor :: FloorGenerator Unit
-decor position =
+decor position _ =
   -- ceiling
   [ decorObject
       { x:
@@ -181,15 +199,23 @@ decor position =
   ]
 
 background :: FloorGenerator Unit
-background position =
+background position _ =
   [ emptyObject unit position "palegoldenrod" 1.0
   ]
 
-generateTowers :: forall a. FloorGenerator a -> Objects a
-generateTowers fn = bind (range 0 towers) (generateTower fn)
+seedHelper :: Tuple Int Seed -> Int -> Tuple Int Seed
+seedHelper prevValue i = Tuple i seed
+  where
+  seed = snd prevValue
 
-generateTower :: forall a. FloorGenerator a -> Int -> Objects a
-generateTower fn towerNumber = bind (range 0 towerFloors) (generateFloor fn towerNumber)
+seedRange :: Int -> Int -> Seed -> Array (Tuple Int Seed)
+seedRange begin end s = scanl seedHelper (Tuple 0 s) (range begin end)
+
+generateTowers :: forall a. FloorGenerator a -> Seed -> Objects a
+generateTowers fn s = bind (seedRange 0 towers s) (generateTower fn)
+
+generateTower :: forall a. FloorGenerator a -> Tuple Int Seed -> Objects a
+generateTower fn (Tuple towerNumber seed) = bind (seedRange 0 towerFloors seed) (generateFloor fn towerNumber)
 
 emptyObject :: forall a. a -> ObjectPosition -> String -> Number -> GameObject a
 emptyObject objectType position color distance =
@@ -205,39 +231,36 @@ emptyObject objectType position color distance =
   , type: objectType
   }
 
-generateFloor :: forall a. FloorGenerator a -> Int -> Int -> Objects a
-generateFloor fn towerNumber floorNumber =
+generateFloor :: forall a. FloorGenerator a -> Int -> Tuple Int Seed -> Objects a
+generateFloor fn towerNumber (Tuple floorNumber s) =
   fn
     { x: x
     , y: y
     , width: towerFloorWidth
     , height: towerFloorHeight
     }
+    s
   where
   x = toNumber towerNumber * towerDistance
 
   y = toNumber floorNumber * towerFloorHeight
 
-generateObjects :: Effect (Objects ObjectType)
-generateObjects = pure []
-
-generateMap :: Effect (Map ObjectType)
-generateMap = do
-  objects <- generateObjects
-  pure
-    { cameraPosition:
-        { width: 1000.0
-        , height: 800.0
-        , x: 0.0
-        , y: 0.0
-        }
-    , objects:
-        concat
-          [ [ playerInitialState ]
-          , generateTowers
-              floorGround
-          , objects
-          ]
-    , foreground: concat [ (generateTowers decor) ]
-    , background: concat [ backgroundDecor, (generateTowers background) ]
-    }
+generateMap :: Seed -> Map ObjectType
+generateMap s =
+  { cameraPosition:
+      { width: 1000.0
+      , height: 800.0
+      , x: 0.0
+      , y: 0.0
+      }
+  , objects:
+      concat
+        [ [ playerInitialState ]
+        , generateTowers
+            floorGround
+            s
+        --, generateTowers enemies s
+        ]
+  , foreground: concat [ (generateTowers decor s) ]
+  , background: concat [ backgroundDecor, (generateTowers background s) ]
+  }

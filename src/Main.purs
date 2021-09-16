@@ -10,11 +10,14 @@ import Main.Level (generateMap)
 import Main.Step (step)
 import NoControl.Engine (Map)
 import NoControl.Engine.Effect (loop, renderFrame)
+import Random.LCG (randomSeed)
 
 main :: Effect Unit
 main = do
   canvas <- getCanvasElementById "app"
-  gameMap <- generateMap
+  seed <- randomSeed
+  let
+    gameMap = generateMap seed
   case canvas of
     Nothing -> log "No canvas"
     Just canvas -> do

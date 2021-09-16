@@ -21,6 +21,7 @@ You can edit this file as you like.
   , "psci-support"
   , "refs"
   , "st"
+  , "tuples"
   , "web-events"
   , "web-html"
   , "web-uievents"

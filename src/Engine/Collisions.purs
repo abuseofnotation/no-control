@@ -6,38 +6,49 @@ import Prelude
 import Data.Traversable as Data
 import NoControl.Engine
 
-segmentByHelper :: forall a. (a -> a -> Boolean) -> Array (Array (a)) -> a -> Array (Array (a))
-segmentByHelper fn segments object = case last segments >>= last of
+type BoundaryAccessor a
+  = { beginning ::
+        GameObject a ->
+        Number
+    , ending ::
+        GameObject a -> Number
+    }
+
+horizontal :: forall a. BoundaryAccessor a
+horizontal =
+  { beginning: \o -> o.position.x
+  , ending: \o -> o.position.x + o.position.width
+  }
+
+vertical :: forall a. BoundaryAccessor a
+vertical =
+  { beginning: \o -> o.position.y
+  , ending: \o -> o.position.y + o.position.height
+  }
+
+--segmentHelper :: forall a. BoundaryAccessor a -> Array (Objects a) -> GameObject a
+segmentHelper f segments object = case last segments >>= last of
   Nothing -> [ [ object ] ]
   Just lastObject ->
-    if (fn lastObject object) then
-      fromMaybe [] (modifyAt lastSegmentIndex (\s -> snoc s object) segments)
+    if (f.ending lastObject > f.beginning object) then
+      -- the last object in the segment should always be the one which is at its
+      -- boundary (which is not always the one which is closest to it, due to 
+      -- some objects being wider than others)
+      if f.ending lastObject > f.ending object then
+        fromMaybe [] (modifyAt lastSegmentIndex (\s -> cons object s) segments)
+      else
+        fromMaybe [] (modifyAt lastSegmentIndex (\s -> snoc s object) segments)
     else
       snoc segments [ object ]
   where
   lastSegmentIndex = length segments - 1
 
-segmentBy :: forall a. (a -> a -> Boolean) -> Array (a) -> Array (Array (a))
-segmentBy fn = foldl (segmentByHelper fn) []
-
-horizontalOverlap :: forall a. GameObject (a) -> GameObject (a) -> Boolean
-horizontalOverlap left right = (left.position.x + left.position.width) > right.position.x
-
-verticalOverlap :: forall a. GameObject (a) -> GameObject (a) -> Boolean
-verticalOverlap down up = (down.position.y + down.position.height) > up.position.y
-
-sortByX = sortWith \obj -> obj.position.x
-
-sortByY = sortWith \obj -> obj.position.y
+segment f o = foldl (segmentHelper f) [] sorted
+  where
+  sorted = sortWith f.beginning o
 
 overlappingSegments :: forall a. Objects a -> Array (Objects a)
-overlappingSegments o =
-  segmentBy horizontalOverlap (sortByX o) >>= (\o -> segmentBy verticalOverlap (sortByY o))
-    -- Have to run the horizontal overlap the second time, as several objects (more than two)
-    
-    -- may be in one segment without actually overlapping
-    
-    >>= (\o -> segmentBy horizontalOverlap (sortByX o))
+overlappingSegments o = (segment horizontal) o >>= (segment vertical)
 
 type HandleCollision a
   = Objects a -> Objects a
