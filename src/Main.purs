@@ -11,12 +11,10 @@ import Main.Step (step)
 import NoControl.Engine (Map)
 import NoControl.Engine.Effect (loop, renderFrame)
 
-gameMap :: Map ObjectType
-gameMap = generateMap
-
 main :: Effect Unit
 main = do
   canvas <- getCanvasElementById "app"
+  gameMap <- generateMap
   case canvas of
     Nothing -> log "No canvas"
     Just canvas -> do

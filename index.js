@@ -1994,10 +1994,12 @@ var PS = {};
   "use strict";
   $PS["Main.Level"] = $PS["Main.Level"] || {};
   var exports = $PS["Main.Level"];
+  var Control_Applicative = $PS["Control.Applicative"];
   var Control_Bind = $PS["Control.Bind"];
   var Data_Array = $PS["Data.Array"];
   var Data_Int = $PS["Data.Int"];
   var Data_Unit = $PS["Data.Unit"];
+  var Effect = $PS["Effect"];
   var Main_Types = $PS["Main.Types"];                
   var towers = 20;
   var towerFloors = 20;
@@ -2007,7 +2009,7 @@ var PS = {};
   var playerInitialState = {
       position: {
           x: towerFloorWidth / 2.0,
-          y: 0.0,
+          y: Data_Int.toNumber(towerFloors - 4 | 0) * towerFloorHeight,
           width: 14.0,
           height: 50.0
       },
@@ -2024,6 +2026,7 @@ var PS = {};
       type: Main_Types.Player.value
   };
   var groundZero = towerFloorHeight * Data_Int.toNumber(towerFloors + 2 | 0);
+  var generateObjects = Control_Applicative.pure(Effect.applicativeEffect)([  ]);
   var generateFloor = function (fn) {
       return function (towerNumber) {
           return function (floorNumber) {
@@ -2076,7 +2079,6 @@ var PS = {};
           height: 10.0
       })("black")(1.0) ];
   };
-  var generateObjects = Data_Array.concat([ [ playerInitialState ], generateTowers(floorGround) ]);
   var decorObject = function (position) {
       return emptyObject(Data_Unit.unit)(position)("slategrey")(1.0);
   };
@@ -2164,16 +2166,19 @@ var PS = {};
   var background = function (position) {
       return [ emptyObject(Data_Unit.unit)(position)("palegoldenrod")(1.0) ];
   };
-  var generateMap = {
-      cameraPosition: {
-          width: 1000.0,
-          height: 800.0,
-          x: 0.0,
-          y: 0.0
-      },
-      objects: generateObjects,
-      foreground: Data_Array.concat([ generateTowers(decor) ]),
-      background: Data_Array.concat([ backgroundDecor, generateTowers(background) ])
+  var generateMap = function __do() {
+      var objects = generateObjects();
+      return {
+          cameraPosition: {
+              width: 1000.0,
+              height: 800.0,
+              x: 0.0,
+              y: 0.0
+          },
+          objects: Data_Array.concat([ [ playerInitialState ], generateTowers(floorGround), objects ]),
+          foreground: Data_Array.concat([ generateTowers(decor) ]),
+          background: Data_Array.concat([ backgroundDecor, generateTowers(background) ])
+      };
   };
   exports["towerDistance"] = towerDistance;
   exports["towers"] = towers;
@@ -2253,6 +2258,7 @@ var PS = {};
   "use strict";
   $PS["NoControl.Engine.Render"] = $PS["NoControl.Engine.Render"] || {};
   var exports = $PS["NoControl.Engine.Render"];
+  var Data_Array = $PS["Data.Array"];
   var Data_Functor = $PS["Data.Functor"];
   var Data_Maybe = $PS["Data.Maybe"];                
   var updateCoordinates = function (camera) {
@@ -2273,8 +2279,15 @@ var PS = {};
           };
       };
   };
+  var isInsideScreen = function (o) {
+      return o.position.x < 800.0 * 2.0 && o.position.x > -800.0;
+  };
   var updateCamera = function (gameMap) {
-      return Data_Functor.map(Data_Functor.functorArray)(updateCoordinates(gameMap.cameraPosition));
+      var $4 = Data_Array.filter(isInsideScreen);
+      var $5 = Data_Functor.map(Data_Functor.functorArray)(updateCoordinates(gameMap.cameraPosition));
+      return function ($6) {
+          return $4($5($6));
+      };
   };
   var cameraFollowObject = function (v) {
       return function (position) {
@@ -2289,7 +2302,7 @@ var PS = {};
           if (v instanceof Data_Maybe.Nothing) {
               return position;
           };
-          throw new Error("Failed pattern match at NoControl.Engine.Render (line 33, column 1 - line 33, column 89): " + [ v.constructor.name, position.constructor.name ]);
+          throw new Error("Failed pattern match at NoControl.Engine.Render (line 36, column 1 - line 36, column 89): " + [ v.constructor.name, position.constructor.name ]);
       };
   };
   exports["updateCamera"] = updateCamera;
@@ -2370,7 +2383,7 @@ var PS = {};
       if (o.type instanceof Main_Types.None) {
           return 4;
       };
-      throw new Error("Failed pattern match at Main.Step (line 164, column 13 - line 168, column 18): " + [ o.type.constructor.name ]);
+      throw new Error("Failed pattern match at Main.Step (line 180, column 13 - line 184, column 18): " + [ o.type.constructor.name ]);
   });
   var jumpPower = 15.0;
   var jumpControlPower = 0.2;
@@ -2425,7 +2438,7 @@ var PS = {};
           if (v instanceof Data_Maybe.Nothing) {
               return o;
           };
-          throw new Error("Failed pattern match at Main.Step (line 97, column 22 - line 99, column 15): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Main.Step (line 99, column 22 - line 101, column 15): " + [ v.constructor.name ]);
       };
   };
   var respawnPlayerIfNeeded = function (o) {
@@ -2444,79 +2457,13 @@ var PS = {};
       };
       return false;
   };
-  var cameraFollowPlayer = function (player) {
-      var $28 = NoControl_Engine_Render.cameraFollowObject(player);
-      return function ($29) {
-          return (function (camera) {
-              var $15 = camera.y + camera.height > Main_Level.groundZero;
-              if ($15) {
-                  return {
-                      x: camera.x,
-                      y: Main_Level.groundZero - camera.height,
-                      width: camera.width,
-                      height: camera.height
-                  };
-              };
-              return camera;
-          })($28($29));
-      };
-  };
-  var bounce = function (ground) {
-      return function (a) {
-          return {
-              position: {
-                  x: a.position.x,
-                  y: (function () {
-                      var $16 = a.energy.y > 0.0;
-                      if ($16) {
-                          return ground.position.y - a.position.height;
-                      };
-                      return ground.position.y + ground.position.height;
-                  })(),
-                  width: a.position.width,
-                  height: a.position.height
-              },
-              characteristics: a.characteristics,
-              type: a.type,
-              energy: {
-                  x: a.energy.x * a.characteristics.bounceability,
-                  y: -(a.energy.y * a.characteristics.bounceability)
-              }
-          };
-      };
-  };
-  var handleCollision = function (v) {
-      return function (v1) {
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Ground) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
-          };
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Player) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
-          };
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Bomb) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
-          };
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.None) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
-          };
-          if (v instanceof Data_Maybe.Nothing) {
-              return [  ];
-          };
-          throw new Error("Failed pattern match at Main.Step (line 177, column 1 - line 177, column 93): " + [ v.constructor.name, v1.constructor.name ]);
-      };
-  };
-  var handleCollisions = function ($30) {
-      return (function (array) {
-          return handleCollision(Data_Array.head(array))(Data_Maybe.fromMaybe([  ])(Data_Array.tail(array)));
-      })(sortByType($30));
-  };
-  var bombs = Data_Functor.map(Data_Functor.functorArray)(function (i) {
+  var generateBombs = Data_Functor.map(Data_Functor.functorArray)(function (i) {
       return {
           position: {
               x: Data_Int.toNumber(i) * Main_Level.towerDistance - 30.0,
               y: 0.0,
-              width: 20.0,
-              height: 20.0
+              width: 10.0,
+              height: 10.0
           },
           energy: {
               x: -2.0,
@@ -2533,24 +2480,107 @@ var PS = {};
   })(Data_Array.range(1)(Main_Level.towers));
   var dropBombsIfNeeded = function (o) {
       var currentBombs = Data_Array.filter(isBomb)(o);
-      var $27 = Data_Array.length(currentBombs) < 50;
-      if ($27) {
+      var bombs = Main_Level.towers * 10 | 0;
+      var $15 = Data_Array.length(currentBombs) < bombs;
+      if ($15) {
           return Debug.trace()(bombs)(function (v) {
-              return Data_Array.concat([ o, bombs ]);
+              return Data_Array.concat([ o, generateBombs ]);
           });
       };
       return o;
   };
+  var cameraFollowPlayer = function (player) {
+      var $29 = NoControl_Engine_Render.cameraFollowObject(player);
+      return function ($30) {
+          return (function (camera) {
+              var $16 = camera.y + camera.height > Main_Level.groundZero;
+              if ($16) {
+                  return {
+                      x: camera.x,
+                      y: Main_Level.groundZero - camera.height,
+                      width: camera.width,
+                      height: camera.height
+                  };
+              };
+              return camera;
+          })($29($30));
+      };
+  };
+  var bounce = function (ground) {
+      return function (a) {
+          return {
+              position: {
+                  x: a.position.x,
+                  y: (function () {
+                      var $17 = a.energy.y > 0.0;
+                      if ($17) {
+                          return ground.position.y - a.position.height;
+                      };
+                      return ground.position.y + ground.position.height;
+                  })(),
+                  width: a.position.width,
+                  height: a.position.height
+              },
+              characteristics: a.characteristics,
+              type: a.type,
+              energy: {
+                  x: a.energy.x * a.characteristics.bounceability,
+                  y: -(a.energy.y * a.characteristics.bounceability)
+              }
+          };
+      };
+  };
+  var fall = function (bomb) {
+      return function (a) {
+          if (a.type instanceof Main_Types.Player) {
+              return {
+                  position: a.position,
+                  characteristics: a.characteristics,
+                  type: a.type,
+                  energy: {
+                      x: 0.0,
+                      y: 20.0
+                  }
+              };
+          };
+          return bounce(bomb)(a);
+      };
+  };
+  var handleCollision = function (v) {
+      return function (v1) {
+          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Ground) {
+              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
+          };
+          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Player) {
+              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
+          };
+          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Bomb) {
+              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(fall(v.value0))(v1));
+          };
+          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.None) {
+              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
+          };
+          if (v instanceof Data_Maybe.Nothing) {
+              return [  ];
+          };
+          throw new Error("Failed pattern match at Main.Step (line 193, column 1 - line 193, column 93): " + [ v.constructor.name, v1.constructor.name ]);
+      };
+  };
+  var handleCollisions = function ($31) {
+      return (function (array) {
+          return handleCollision(Data_Array.head(array))(Data_Maybe.fromMaybe([  ])(Data_Array.tail(array)));
+      })(sortByType($31));
+  };
   var updateObjects = function (player) {
       return function (keys) {
-          var $31 = Data_Array.filter(function (o) {
+          var $32 = Data_Array.filter(function (o) {
               return o.position.y < 10000.0;
           });
-          var $32 = moveObjects(keys);
-          var $33 = NoControl_Engine_Collisions.handleObjectCollisions(handleCollisions);
-          var $34 = Data_Functor.map(Data_Functor.functorArray)(NoControl_Engine_Step.updateObject);
-          return function ($35) {
-              return dropBombsIfNeeded(respawnPlayerIfNeeded($31($32($33($34($35))))));
+          var $33 = moveObjects(keys);
+          var $34 = NoControl_Engine_Collisions.handleObjectCollisions(handleCollisions);
+          var $35 = Data_Functor.map(Data_Functor.functorArray)(NoControl_Engine_Step.updateObject);
+          return function ($36) {
+              return dropBombsIfNeeded(respawnPlayerIfNeeded($32($33($34($35($36))))));
           };
       };
   };
@@ -2799,9 +2829,9 @@ var PS = {};
   var Main_Level = $PS["Main.Level"];
   var Main_Step = $PS["Main.Step"];
   var NoControl_Engine_Effect = $PS["NoControl.Engine.Effect"];                
-  var gameMap = Main_Level.generateMap;
   var main = function __do() {
       var canvas = Graphics_Canvas.getCanvasElementById("app")();
+      var gameMap = Main_Level.generateMap();
       if (canvas instanceof Data_Maybe.Nothing) {
           return Effect_Console.log("No canvas")();
       };
@@ -2818,9 +2848,8 @@ var PS = {};
           })(gameMap)();
           return Data_Unit.unit;
       };
-      throw new Error("Failed pattern match at Main (line 20, column 3 - line 31, column 16): " + [ canvas.constructor.name ]);
+      throw new Error("Failed pattern match at Main (line 18, column 3 - line 29, column 16): " + [ canvas.constructor.name ]);
   };
-  exports["gameMap"] = gameMap;
   exports["main"] = main;
 })(PS);
 PS["Main"].main();

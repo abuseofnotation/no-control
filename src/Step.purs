@@ -23,14 +23,14 @@ walkingPower = 5.0
 
 jumpControlPower = 0.2
 
-bombs =
+generateBombs =
   map
     ( \i ->
         { position:
             { x: (toNumber i) * towerDistance - 30.00
             , y: 0.0
-            , width: 20.0
-            , height: 20.0
+            , width: 10.0
+            , height: 10.0
             }
         , energy: { x: -2.0, y: 0.0 }
         , characteristics:
@@ -73,12 +73,14 @@ respawnPlayerIfNeeded o = case p of
 
 dropBombsIfNeeded :: Objects ObjectType -> Objects ObjectType
 dropBombsIfNeeded o =
-  if length currentBombs < 50 then
-    trace bombs \_ -> concat [ o, bombs ]
+  if length currentBombs < bombs then
+    trace bombs \_ -> concat [ o, (generateBombs) ]
   else
     o
   where
   currentBombs = filter isBomb o
+
+  bombs = towers * 10
 
 cameraFollowPlayer player =
   cameraFollowObject player
@@ -158,6 +160,20 @@ bounce ground a =
       }
   }
 
+fall :: GameObject ObjectType -> GameObject ObjectType -> GameObject ObjectType
+fall bomb a = case a.type of
+  Player ->
+    { position: a.position
+    , characteristics: a.characteristics
+    , type:
+        a.type
+    , energy:
+        { x: 0.0
+        , y: 20.0
+        }
+    }
+  _ -> (bounce bomb a)
+
 sortByType :: Objects ObjectType -> Objects ObjectType
 sortByType =
   sortWith
@@ -179,7 +195,7 @@ handleCollision (Just x@{ type: Ground }) xs = x : (map (bounce x) xs)
 
 handleCollision (Just x@{ type: Player }) xs = x : (map (bounce x) xs)
 
-handleCollision (Just x@{ type: Bomb }) xs = x : (map (bounce x) xs)
+handleCollision (Just x@{ type: Bomb }) xs = x : (map (fall x) xs)
 
 handleCollision (Just x@{ type: None }) xs = x : (map (bounce x) xs)
 

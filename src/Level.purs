@@ -3,8 +3,9 @@ module Main.Level where
 import Prelude
 import Data.Array (concat, cons, range)
 import Data.Int (toNumber)
+import Effect (Effect)
 import Main.Types (ObjectType(..))
-import NoControl.Engine (ObjectPosition, Objects, GameObject)
+import NoControl.Engine (GameObject, ObjectPosition, Objects, Map)
 import Web.HTML.HTMLCanvasElement (height)
 import Web.HTML.HTMLProgressElement (position)
 
@@ -26,7 +27,7 @@ type FloorGenerator a
 playerInitialState =
   { position:
       { x: towerFloorWidth / 2.0
-      , y: 0.0
+      , y: toNumber (towerFloors - 4) * towerFloorHeight
       , width: 14.0
       , height: 50.0
       }
@@ -217,24 +218,26 @@ generateFloor fn towerNumber floorNumber =
 
   y = toNumber floorNumber * towerFloorHeight
 
-generateObjects :: Objects ObjectType
-generateObjects =
-  concat
-    [ [ playerInitialState
-      ]
-    , ( generateTowers
-          floorGround
-      )
-    ]
+generateObjects :: Effect (Objects ObjectType)
+generateObjects = pure []
 
-generateMap =
-  { cameraPosition:
-      { width: 1000.0
-      , height: 800.0
-      , x: 0.0
-      , y: 0.0
-      }
-  , objects: generateObjects
-  , foreground: concat [ (generateTowers decor) ]
-  , background: concat [ backgroundDecor, (generateTowers background) ]
-  }
+generateMap :: Effect (Map ObjectType)
+generateMap = do
+  objects <- generateObjects
+  pure
+    { cameraPosition:
+        { width: 1000.0
+        , height: 800.0
+        , x: 0.0
+        , y: 0.0
+        }
+    , objects:
+        concat
+          [ [ playerInitialState ]
+          , generateTowers
+              floorGround
+          , objects
+          ]
+    , foreground: concat [ (generateTowers decor) ]
+    , background: concat [ backgroundDecor, (generateTowers background) ]
+    }

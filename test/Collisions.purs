@@ -38,6 +38,11 @@ overlappingObjects =
   , o ({ x: 20.0, y: 20.0, width: 10.0, height: 10.0 })
   ]
 
+otherOverlappingObjects =
+  [ o ({ x: 0.0, y: 30.0, width: 21.0, height: 21.0 })
+  , o ({ x: 20.0, y: 40.0, width: 10.0, height: 10.0 })
+  ]
+
 main :: Effect Unit
 main = do
   assert
@@ -62,8 +67,7 @@ main = do
     -- FullOverlap: horizontally overlapping objects are left in separate segments
     ( length
         ( overlappingSegments
-            ( sortByX horizontallyOverlappingObjects
-            )
+            horizontallyOverlappingObjects
         )
         == 2
     )
@@ -71,8 +75,15 @@ main = do
     -- FullOverlap: overlapping objects are in one segment
     ( length
         ( overlappingSegments
-            ( sortByX overlappingObjects
-            )
+            overlappingObjects
         )
         == 1
+    )
+  assert
+    -- FullOverlap: overlapping objects are in one segment
+    ( length
+        ( overlappingSegments
+            (concat [ overlappingObjects, otherOverlappingObjects ])
+        )
+        == 2
     )
