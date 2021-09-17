@@ -226,18 +226,6 @@ var PS = {};
   };
 
   //------------------------------------------------------------------------------
-  // Non-indexed reads -----------------------------------------------------------
-  //------------------------------------------------------------------------------
-
-  exports.unconsImpl = function (empty) {
-    return function (next) {
-      return function (xs) {
-        return xs.length === 0 ? empty({}) : next(xs[0])(xs.slice(1));
-      };
-    };
-  };
-
-  //------------------------------------------------------------------------------
   // Indexed operations ----------------------------------------------------------
   //------------------------------------------------------------------------------
 
@@ -811,11 +799,11 @@ var PS = {};
           };
       };
   };
-  var greaterThan = function (dictOrd) {
+  var lessThan = function (dictOrd) {
       return function (a1) {
           return function (a2) {
               var v = compare(dictOrd)(a1)(a2);
-              if (v instanceof Data_Ordering.GT) {
+              if (v instanceof Data_Ordering.LT) {
                   return true;
               };
               return false;
@@ -823,7 +811,7 @@ var PS = {};
       };
   };
   exports["compare"] = compare;
-  exports["greaterThan"] = greaterThan;
+  exports["lessThan"] = lessThan;
   exports["comparing"] = comparing;
   exports["ordInt"] = ordInt;
   exports["ordNumber"] = ordNumber;
@@ -837,7 +825,6 @@ var PS = {};
   var $foreign = $PS["Data.Array"];
   var Data_Array_ST = $PS["Data.Array.ST"];
   var Data_Foldable = $PS["Data.Foldable"];
-  var Data_Function = $PS["Data.Function"];
   var Data_Functor = $PS["Data.Functor"];
   var Data_Maybe = $PS["Data.Maybe"];
   var Data_Ord = $PS["Data.Ord"];
@@ -847,11 +834,6 @@ var PS = {};
   var unsafeIndex = function (dictPartial) {
       return $foreign.unsafeIndexImpl;
   };
-  var tail = $foreign.unconsImpl(Data_Function["const"](Data_Maybe.Nothing.value))(function (v) {
-      return function (xs) {
-          return new Data_Maybe.Just(xs);
-      };
-  });
   var sortBy = function (comp) {
       return $foreign.sortByImpl(comp)(function (v) {
           if (v instanceof Data_Ordering.GT) {
@@ -889,9 +871,6 @@ var PS = {};
               return Data_Maybe.maybe(Data_Maybe.Nothing.value)(go)(index(xs)(i));
           };
       };
-  };
-  var head = function (xs) {
-      return index(xs)(0);
   };                                                           
   var foldl = Data_Foldable.foldl(Data_Foldable.foldableArray);
   var findIndex = $foreign.findIndexImpl(Data_Maybe.Just.create)(Data_Maybe.Nothing.value);
@@ -907,9 +886,7 @@ var PS = {};
   };
   exports["cons"] = cons;
   exports["snoc"] = snoc;
-  exports["head"] = head;
   exports["last"] = last;
-  exports["tail"] = tail;
   exports["find"] = find;
   exports["findIndex"] = findIndex;
   exports["modifyAt"] = modifyAt;
@@ -2260,6 +2237,7 @@ var PS = {};
   var exports = $PS["Main.Level"];
   var Control_Bind = $PS["Control.Bind"];
   var Data_Array = $PS["Data.Array"];
+  var Data_Functor = $PS["Data.Functor"];
   var Data_Int = $PS["Data.Int"];
   var Data_Tuple = $PS["Data.Tuple"];
   var Data_Unit = $PS["Data.Unit"];
@@ -2326,6 +2304,27 @@ var PS = {};
           return Control_Bind.bind(Control_Bind.bindArray)(seedRange(0)(towers)(s))(generateTower(fn));
       };
   };
+  var generateBombs = Data_Functor.map(Data_Functor.functorArray)(function (i) {
+      return {
+          position: {
+              x: Data_Int.toNumber(i) * towerDistance - 30.0,
+              y: 0.0,
+              width: 5.0,
+              height: 5.0
+          },
+          energy: {
+              x: -30.0,
+              y: 0.0
+          },
+          characteristics: {
+              bounceability: 0.9,
+              maxFallSpeed: 100.0,
+              color: "blue",
+              distance: 1.0
+          },
+          type: Main_Types.Bomb.value
+      };
+  })(Data_Array.range(1)(towers));
   var emptyObject = function (objectType) {
       return function (position) {
           return function (color) {
@@ -2346,16 +2345,6 @@ var PS = {};
                   };
               };
           };
-      };
-  };
-  var enemies = function (position) {
-      return function (seed) {
-          return [ emptyObject(Main_Types.None.value)({
-              x: position.x + 60.0,
-              y: position.y - 150.0,
-              width: 10.0,
-              height: 10.0
-          })("purple")(1.0) ];
       };
   };
   var floorGround = function (position) {
@@ -2467,23 +2456,25 @@ var PS = {};
               x: 0.0,
               y: 0.0
           },
-          objects: Data_Array.concat([ [ playerInitialState ], generateTowers(floorGround)(s), generateTowers(enemies)(s) ]),
+          objects: Data_Array.concat([ [ playerInitialState ], generateTowers(floorGround)(s) ]),
           foreground: Data_Array.concat([ generateTowers(decor)(s) ]),
           background: Data_Array.concat([ backgroundDecor, generateTowers(background)(s) ])
       };
   };
-  exports["towerDistance"] = towerDistance;
   exports["towers"] = towers;
   exports["groundZero"] = groundZero;
   exports["playerInitialState"] = playerInitialState;
   exports["generateMap"] = generateMap;
+  exports["generateBombs"] = generateBombs;
 })(PS);
 (function($PS) {
+  // Generated by purs version 0.14.4
   "use strict";
   $PS["NoControl.Engine.Collisions"] = $PS["NoControl.Engine.Collisions"] || {};
   var exports = $PS["NoControl.Engine.Collisions"];
   var Control_Bind = $PS["Control.Bind"];
   var Data_Array = $PS["Data.Array"];
+  var Data_Functor = $PS["Data.Functor"];
   var Data_Maybe = $PS["Data.Maybe"];
   var Data_Ord = $PS["Data.Ord"];                
   var vertical = {
@@ -2494,42 +2485,45 @@ var PS = {};
           return o.position.y + o.position.height;
       }
   };
-
-  //segmentHelper :: forall a. BoundaryAccessor a -> Array (Objects a) -> GameObject a
-  var segmentHelper = function (dictOrd) {
-      return function (f) {
-          return function (segments) {
-              return function (object) {
-                  var lastSegmentIndex = Data_Array.length(segments) - 1 | 0;
-                  var v = Control_Bind.bind(Data_Maybe.bindMaybe)(Data_Array.last(segments))(Data_Array.last);
-                  if (v instanceof Data_Maybe.Nothing) {
-                      return [ [ object ] ];
-                  };
-                  if (v instanceof Data_Maybe.Just) {
-                      var $4 = Data_Ord.greaterThan(dictOrd)(f.ending(v.value0))(f.beginning(object));
+  var segmentHelper = function (f) {
+      return function (segments) {
+          return function (object) {
+              var lastSegmentIndex = Data_Array.length(segments) - 1 | 0;
+              var v = Control_Bind.bind(Data_Maybe.bindMaybe)(Data_Array.last(segments))(Data_Array.last);
+              if (v instanceof Data_Maybe.Nothing) {
+                  return [ [ object ] ];
+              };
+              if (v instanceof Data_Maybe.Just) {
+                  var $3 = f.ending(v.value0) > f.beginning(object);
+                  if ($3) {
+                      var $4 = f.ending(v.value0) > f.ending(object);
                       if ($4) {
-                          var $5 = Data_Ord.greaterThan(dictOrd)(f.ending(v.value0))(f.ending(object));
-                          if ($5) {
-                              return Data_Maybe.fromMaybe([  ])(Data_Array.modifyAt(lastSegmentIndex)(function (s) {
-                                  return Data_Array.cons(object)(s);
-                              })(segments));
-                          };
                           return Data_Maybe.fromMaybe([  ])(Data_Array.modifyAt(lastSegmentIndex)(function (s) {
-                              return Data_Array.snoc(s)(object);
+                              return Data_Array.cons(object)(s);
                           })(segments));
                       };
-                      return Data_Array.snoc(segments)([ object ]);
+                      return Data_Maybe.fromMaybe([  ])(Data_Array.modifyAt(lastSegmentIndex)(function (s) {
+                          return Data_Array.snoc(s)(object);
+                      })(segments));
                   };
-                  throw new Error("Failed pattern match at NoControl.Engine.Collisions (line 30, column 35 - line 42, column 31): " + [ v.constructor.name ]);
+                  return Data_Array.snoc(segments)([ object ]);
               };
+              throw new Error("Failed pattern match at NoControl.Engine.Collisions (line 32, column 35 - line 44, column 31): " + [ v.constructor.name ]);
           };
       };
   };
-  var segment = function (dictOrd) {
-      return function (f) {
-          return function (o) {
-              var sorted = Data_Array.sortWith(dictOrd)(f.beginning)(o);
-              return Data_Array.foldl(segmentHelper(dictOrd)(f))([  ])(sorted);
+  var segment = function (f) {
+      return function (o) {
+          var sorted = Data_Array.sortWith(Data_Ord.ordNumber)(f.beginning)(o);
+          return Data_Array.foldl(segmentHelper(f))([  ])(sorted);
+      };
+  };
+  var notColliding = function (dictOrd) {
+      return function (h) {
+          return function (a) {
+              return function (b) {
+                  return Data_Ord.lessThan(dictOrd)(h.ending(a))(h.beginning(b)) || Data_Ord.lessThan(dictOrd)(h.ending(b))(h.beginning(a));
+              };
           };
       };
   };
@@ -2542,11 +2536,32 @@ var PS = {};
       }
   };
   var overlappingSegments = function (o) {
-      return Control_Bind.bind(Control_Bind.bindArray)(segment(Data_Ord.ordNumber)(horizontal)(o))(segment(Data_Ord.ordNumber)(vertical));
+      return Control_Bind.bind(Control_Bind.bindArray)(segment(horizontal)(o))(segment(vertical));
   };
-  var handleObjectCollisions = function (fn) {
+  var collisionHelper = function (h) {
       return function (objects) {
-          return Control_Bind.bind(Control_Bind.bindArray)(overlappingSegments(objects))(fn);
+          return function (object) {
+              return Data_Functor.map(Data_Functor.functorArray)(h(object))(objects);
+          };
+      };
+  };
+  var checkIfReallyColliding = function (f) {
+      return function (a) {
+          return function (b) {
+              var $6 = notColliding(Data_Ord.ordNumber)(horizontal)(a)(b) || notColliding(Data_Ord.ordNumber)(vertical)(a)(b);
+              if ($6) {
+                  return b;
+              };
+              return f(a)(b);
+          };
+      };
+  };
+  var handleObjectCollisions = function (f) {
+      return function (o) {
+          var fw = checkIfReallyColliding(f);
+          return Control_Bind.bind(Control_Bind.bindArray)(overlappingSegments(o))(function (o1) {
+              return Data_Array.foldl(collisionHelper(fw))(o1)(o1);
+          });
       };
   };
   exports["handleObjectCollisions"] = handleObjectCollisions;
@@ -2651,12 +2666,12 @@ var PS = {};
   exports["updateObject"] = updateObject;
 })(PS);
 (function($PS) {
+  // Generated by purs version 0.14.4
   "use strict";
   $PS["Main.Step"] = $PS["Main.Step"] || {};
   var exports = $PS["Main.Step"];
   var Data_Array = $PS["Data.Array"];
   var Data_Functor = $PS["Data.Functor"];
-  var Data_Int = $PS["Data.Int"];
   var Data_Maybe = $PS["Data.Maybe"];
   var Data_Ord = $PS["Data.Ord"];
   var Data_Set = $PS["Data.Set"];
@@ -2667,21 +2682,19 @@ var PS = {};
   var NoControl_Engine_Render = $PS["NoControl.Engine.Render"];
   var NoControl_Engine_Step = $PS["NoControl.Engine.Step"];                
   var walkingPower = 5.0;
-  var sortByType = Data_Array.sortWith(Data_Ord.ordInt)(function (o) {
-      if (o.type instanceof Main_Types.Ground) {
-          return 1;
+  var throwAway = function (v) {
+      return function (a) {
+          return {
+              position: a.position,
+              characteristics: a.characteristics,
+              type: a.type,
+              energy: {
+                  x: -20.0,
+                  y: -0.1
+              }
+          };
       };
-      if (o.type instanceof Main_Types.Bomb) {
-          return 2;
-      };
-      if (o.type instanceof Main_Types.Player) {
-          return 3;
-      };
-      if (o.type instanceof Main_Types.None) {
-          return 4;
-      };
-      throw new Error("Failed pattern match at Main.Step (line 180, column 13 - line 184, column 18): " + [ o.type.constructor.name ]);
-  });
+  };
   var jumpPower = 15.0;
   var jumpControlPower = 0.2;
   var movePlayer = function (keys) {
@@ -2735,7 +2748,7 @@ var PS = {};
           if (v instanceof Data_Maybe.Nothing) {
               return o;
           };
-          throw new Error("Failed pattern match at Main.Step (line 99, column 22 - line 101, column 15): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Main.Step (line 76, column 22 - line 78, column 15): " + [ v.constructor.name ]);
       };
   };
   var respawnPlayerIfNeeded = function (o) {
@@ -2746,7 +2759,7 @@ var PS = {};
       if (p instanceof Data_Maybe.Nothing) {
           return Data_Array.concat([ [ Main_Level.playerInitialState ], o ]);
       };
-      throw new Error("Failed pattern match at Main.Step (line 68, column 27 - line 70, column 50): " + [ p.constructor.name ]);
+      throw new Error("Failed pattern match at Main.Step (line 45, column 27 - line 47, column 50): " + [ p.constructor.name ]);
   };
   var isBomb = function (o) {
       if (o.type instanceof Main_Types.Bomb) {
@@ -2754,41 +2767,33 @@ var PS = {};
       };
       return false;
   };
-  var generateBombs = Data_Functor.map(Data_Functor.functorArray)(function (i) {
-      return {
-          position: {
-              x: Data_Int.toNumber(i) * Main_Level.towerDistance - 30.0,
-              y: 0.0,
-              width: 10.0,
-              height: 10.0
-          },
-          energy: {
-              x: -2.0,
-              y: 0.0
-          },
-          characteristics: {
-              bounceability: 0.6,
-              maxFallSpeed: 100.0,
-              color: "blue",
-              distance: 1.0
-          },
-          type: Main_Types.Bomb.value
+  var fall = function (bomb) {
+      return function (a) {
+          return {
+              position: a.position,
+              characteristics: a.characteristics,
+              type: a.type,
+              energy: {
+                  x: 0.0,
+                  y: 20.0
+              }
+          };
       };
-  })(Data_Array.range(1)(Main_Level.towers));
+  };
   var dropBombsIfNeeded = function (o) {
       var currentBombs = Data_Array.filter(isBomb)(o);
       var bombs = Main_Level.towers * 10 | 0;
       var $15 = Data_Array.length(currentBombs) < bombs;
       if ($15) {
           return Debug.trace()(bombs)(function (v) {
-              return Data_Array.concat([ o, generateBombs ]);
+              return Data_Array.concat([ o, Main_Level.generateBombs ]);
           });
       };
       return o;
   };
   var cameraFollowPlayer = function (player) {
-      var $29 = NoControl_Engine_Render.cameraFollowObject(player);
-      return function ($30) {
+      var $30 = NoControl_Engine_Render.cameraFollowObject(player);
+      return function ($31) {
           return (function (camera) {
               var $16 = camera.y + camera.height > Main_Level.groundZero;
               if ($16) {
@@ -2800,10 +2805,10 @@ var PS = {};
                   };
               };
               return camera;
-          })($29($30));
+          })($30($31));
       };
   };
-  var bounce = function (ground) {
+  var bounceGround = function (ground) {
       return function (a) {
           return {
               position: {
@@ -2827,46 +2832,38 @@ var PS = {};
           };
       };
   };
-  var fall = function (bomb) {
+  var bounce = function (b) {
       return function (a) {
-          if (a.type instanceof Main_Types.Player) {
-              return {
-                  position: a.position,
-                  characteristics: a.characteristics,
-                  type: a.type,
-                  energy: {
-                      x: 0.0,
-                      y: 20.0
-                  }
-              };
+          return {
+              position: a.position,
+              characteristics: a.characteristics,
+              type: a.type,
+              energy: {
+                  x: -(a.energy.x * a.characteristics.bounceability),
+                  y: a.energy.y
+              }
           };
-          return bounce(bomb)(a);
       };
   };
   var handleCollision = function (v) {
       return function (v1) {
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Ground) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
+          if (v.type instanceof Main_Types.Ground && v1.type instanceof Main_Types.Player) {
+              return bounceGround(v)(v1);
           };
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Player) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
+          if (v.type instanceof Main_Types.Ground && v1.type instanceof Main_Types.Bomb) {
+              return bounceGround(v)(v1);
           };
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.Bomb) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(fall(v.value0))(v1));
+          if (v.type instanceof Main_Types.Bomb && v1.type instanceof Main_Types.Player) {
+              return fall(v)(v1);
           };
-          if (v instanceof Data_Maybe.Just && v.value0.type instanceof Main_Types.None) {
-              return Data_Array.cons(v.value0)(Data_Functor.map(Data_Functor.functorArray)(bounce(v.value0))(v1));
+          if (v.type instanceof Main_Types.None && v1.type instanceof Main_Types.Player) {
+              return throwAway(v)(v1);
           };
-          if (v instanceof Data_Maybe.Nothing) {
-              return [  ];
+          if (v.type instanceof Main_Types.Bomb && v1.type instanceof Main_Types.Bomb) {
+              return bounce(v)(v1);
           };
-          throw new Error("Failed pattern match at Main.Step (line 193, column 1 - line 193, column 93): " + [ v.constructor.name, v1.constructor.name ]);
+          return v1;
       };
-  };
-  var handleCollisions = function ($31) {
-      return (function (array) {
-          return handleCollision(Data_Array.head(array))(Data_Maybe.fromMaybe([  ])(Data_Array.tail(array)));
-      })(sortByType($31));
   };
   var updateObjects = function (player) {
       return function (keys) {
@@ -2874,7 +2871,7 @@ var PS = {};
               return o.position.y < 10000.0;
           });
           var $33 = moveObjects(keys);
-          var $34 = NoControl_Engine_Collisions.handleObjectCollisions(handleCollisions);
+          var $34 = NoControl_Engine_Collisions.handleObjectCollisions(handleCollision);
           var $35 = Data_Functor.map(Data_Functor.functorArray)(NoControl_Engine_Step.updateObject);
           return function ($36) {
               return dropBombsIfNeeded(respawnPlayerIfNeeded($32($33($34($35($36))))));

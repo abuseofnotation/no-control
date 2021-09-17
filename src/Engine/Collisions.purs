@@ -2,9 +2,11 @@ module NoControl.Engine.Collisions where
 
 import Data.Array
 import Data.Maybe
+import NoControl.Engine
 import Prelude
 import Data.Traversable as Data
-import NoControl.Engine
+import Debug (spy)
+import Main.Level (backgroundObject)
 
 type BoundaryAccessor a
   = { beginning ::
@@ -26,7 +28,7 @@ vertical =
   , ending: \o -> o.position.y + o.position.height
   }
 
---segmentHelper :: forall a. BoundaryAccessor a -> Array (Objects a) -> GameObject a
+segmentHelper :: forall a. BoundaryAccessor a -> Array (Objects a) -> GameObject a -> Array (Objects a)
 segmentHelper f segments object = case last segments >>= last of
   Nothing -> [ [ object ] ]
   Just lastObject ->
@@ -51,7 +53,21 @@ overlappingSegments :: forall a. Objects a -> Array (Objects a)
 overlappingSegments o = (segment horizontal) o >>= (segment vertical)
 
 type HandleCollision a
-  = Objects a -> Objects a
+  = GameObject a -> GameObject a -> GameObject a
 
 handleObjectCollisions :: forall a. HandleCollision a -> Objects a -> Objects a
-handleObjectCollisions fn objects = overlappingSegments objects >>= fn
+handleObjectCollisions f o = overlappingSegments o >>= (\o -> foldl (collisionHelper fw) o o)
+  where
+  fw = checkIfReallyColliding f
+
+collisionHelper :: forall a. HandleCollision a -> Objects a -> GameObject a -> Objects a
+collisionHelper h objects object = map (h object) objects
+
+checkIfReallyColliding :: forall a. HandleCollision a -> HandleCollision a
+checkIfReallyColliding f a b =
+  if notColliding horizontal a b || notColliding vertical a b then
+    b
+  else
+    f a b
+
+notColliding h a b = h.ending a < h.beginning b || h.ending b < h.beginning a 

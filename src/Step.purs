@@ -9,7 +9,7 @@ import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set as Set
 import Debug (spy, trace)
-import Main.Level (groundZero, playerInitialState, towerDistance, towerFloorHeight, towers)
+import Main.Level (generateBombs, groundZero, playerInitialState, towerDistance, towerFloorHeight, towers)
 import NoControl.Engine (Map, ObjectPosition, Objects, GameObject)
 import NoControl.Engine.Collisions (handleObjectCollisions)
 import NoControl.Engine.Render (cameraFollowObject)
@@ -23,29 +23,6 @@ walkingPower = 5.0
 
 jumpControlPower = 0.2
 
-generateBombs =
-  map
-    ( \i ->
-        { position:
-            { x: (toNumber i) * towerDistance - 30.00
-            , y: 0.0
-            , width: 10.0
-            , height: 10.0
-            }
-        , energy: { x: -2.0, y: 0.0 }
-        , characteristics:
-            { bounceability:
-                0.6
-            , maxFallSpeed:
-                100.0
-            , color: "blue"
-            , distance: 1.0
-            }
-        , type: Bomb
-        }
-    )
-    (range 1 towers)
-
 step :: Map ObjectType -> Set.Set String -> Map ObjectType
 step gameMap keys =
   { cameraPosition: cameraFollowPlayer player gameMap.cameraPosition
@@ -58,7 +35,7 @@ step gameMap keys =
 
 updateObjects player keys =
   map updateObject
-    >>> handleObjectCollisions handleCollisions
+    >>> handleObjectCollisions handleCollision
     >>> moveObjects keys
     >>> filter (\o -> o.position.y < 10000.0)
     >>> respawnPlayerIfNeeded
@@ -135,7 +112,21 @@ isBomb o = case o.type of
   _ -> false
 
 bounce :: forall a. GameObject a -> GameObject a -> GameObject a
-bounce ground a =
+bounce b a =
+  { position: a.position
+  , characteristics: a.characteristics
+  , type:
+      a.type
+  , energy:
+      { x:
+          -(a.energy.x * a.characteristics.bounceability)
+      , y:
+          a.energy.y
+      }
+  }
+
+bounceGround :: forall a. GameObject a -> GameObject a -> GameObject a
+bounceGround ground a =
   { position:
       { x: a.position.x
       -- Simplistic algorithm, supports only horizonal and vertical clashes
@@ -161,42 +152,40 @@ bounce ground a =
   }
 
 fall :: GameObject ObjectType -> GameObject ObjectType -> GameObject ObjectType
-fall bomb a = case a.type of
-  Player ->
-    { position: a.position
-    , characteristics: a.characteristics
-    , type:
-        a.type
-    , energy:
-        { x: 0.0
-        , y: 20.0
-        }
-    }
-  _ -> (bounce bomb a)
+fall bomb a =
+  { position: a.position
+  , characteristics: a.characteristics
+  , type:
+      a.type
+  , energy:
+      { x: 0.0
+      , y: 20.0
+      }
+  }
 
-sortByType :: Objects ObjectType -> Objects ObjectType
-sortByType =
-  sortWith
-    ( \o -> case o.type of
-        Ground -> 1
-        Bomb -> 2
-        Player -> 3
-        None -> 4
-    )
+throwAway :: GameObject ObjectType -> GameObject ObjectType -> GameObject ObjectType
+throwAway _ a =
+  { position: a.position
+  , characteristics: a.characteristics
+  , type:
+      a.type
+  , energy:
+      { x: -20.0
+      , y: -0.1
+      }
+  }
 
-groundCollide :: GameObject ObjectType -> GameObject ObjectType -> Array (GameObject ObjectType)
-groundCollide ground object = [ ground, object ]
+handleCollision :: GameObject ObjectType -> GameObject ObjectType -> GameObject ObjectType
+handleCollision x@{ type: Ground } y@{ type: Player } = bounceGround x y
 
-handleCollisions :: Objects ObjectType -> Objects ObjectType
-handleCollisions = sortByType >>> \array -> handleCollision (head array) (fromMaybe [] (tail array))
+handleCollision x@{ type: Ground } y@{ type: Bomb } = bounceGround x y
 
-handleCollision :: Maybe (GameObject ObjectType) -> Objects ObjectType -> Objects ObjectType
-handleCollision (Just x@{ type: Ground }) xs = x : (map (bounce x) xs)
+handleCollision x@{ type: Bomb } y@{ type: Player } = fall x y
 
-handleCollision (Just x@{ type: Player }) xs = x : (map (bounce x) xs)
+handleCollision x@{ type: None } y@{ type: Player } = throwAway x y
 
-handleCollision (Just x@{ type: Bomb }) xs = x : (map (fall x) xs)
+handleCollision x@{ type: Bomb } y@{ type: Bomb } = bounce x y
 
-handleCollision (Just x@{ type: None }) xs = x : (map (bounce x) xs)
-
-handleCollision Nothing _ = []
+--handleCollision x@{ type: Bomb } y = fall x y
+--handleCollision x@{ type: None } y = bounce x y
+handleCollision x y = y

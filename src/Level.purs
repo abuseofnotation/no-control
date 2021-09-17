@@ -67,11 +67,11 @@ enemies position seed =
       { x:
           position.x + 60.0
       , y:
-          position.y - 150.0
+          position.y + 40.0
       , width:
-          10.0
+          20.0
       , height:
-          10.0
+          20.0
       }
       "purple"
       1.0
@@ -264,3 +264,26 @@ generateMap s =
   , foreground: concat [ (generateTowers decor s) ]
   , background: concat [ backgroundDecor, (generateTowers background s) ]
   }
+
+generateBombs =
+  map
+    ( \i ->
+        { position:
+            { x: (toNumber i) * towerDistance - 30.00
+            , y: 0.0
+            , width: 5.0
+            , height: 5.0
+            }
+        , energy: { x: -30.0, y: 0.0 }
+        , characteristics:
+            { bounceability:
+                0.9
+            , maxFallSpeed:
+                100.0
+            , color: "blue"
+            , distance: 1.0
+            }
+        , type: Bomb
+        }
+    )
+    (range 1 towers)
