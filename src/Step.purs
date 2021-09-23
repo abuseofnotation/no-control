@@ -51,7 +51,7 @@ respawnPlayerIfNeeded o = case p of
 dropBombsIfNeeded :: Objects ObjectType -> Objects ObjectType
 dropBombsIfNeeded o =
   if length currentBombs < bombs then
-    trace bombs \_ -> concat [ o, (generateBombs) ]
+    concat [ o, (generateBombs) ]
   else
     o
   where
@@ -171,7 +171,7 @@ throwAway _ a =
       a.type
   , energy:
       { x: -20.0
-      , y: -0.1
+      , y: -10.0
       }
   }
 

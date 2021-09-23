@@ -4,10 +4,11 @@ import Prelude
 import Data.Array (concat, cons, fold, foldl, range, scanl)
 import Data.Int (toNumber)
 import Data.Tuple (Tuple(..), fst, snd)
+import Debug (spy)
 import Effect (Effect)
 import Main.Types (ObjectType(..))
 import NoControl.Engine (GameObject, ObjectPosition, Objects, Map)
-import Random.PseudoRandom (Seed)
+import Random.LCG (Seed, lcgNext, mkSeed, unSeed)
 import Web.HTML.HTMLCanvasElement (height)
 import Web.HTML.HTMLProgressElement (position)
 
@@ -61,21 +62,30 @@ floorGround position _ =
       1.0
   ]
 
+randomInt :: Int -> Seed -> Int
+randomInt max seed = (unSeed seed) `mod` max + 1
+
+randomBool :: Int -> Seed -> Boolean
+randomBool chance seed = (randomInt chance seed) == chance
+
 enemies :: FloorGenerator (ObjectType)
 enemies position seed =
-  [ emptyObject None
-      { x:
-          position.x + 60.0
-      , y:
-          position.y + 40.0
-      , width:
-          20.0
-      , height:
-          20.0
-      }
-      "purple"
-      1.0
-  ]
+  if randomBool 3 seed then
+    [ emptyObject None
+        { x:
+            position.x - 10.0
+        , y:
+            position.y + 20.0
+        , width:
+            60.0
+        , height:
+            40.0
+        }
+        "purple"
+        1.0
+    ]
+  else
+    []
 
 blackBackground =
   { position:
@@ -204,9 +214,11 @@ background position _ =
   ]
 
 seedHelper :: Tuple Int Seed -> Int -> Tuple Int Seed
-seedHelper prevValue i = Tuple i seed
+seedHelper prevValue i = Tuple i (lcgNext newSeed)
   where
   seed = snd prevValue
+
+  newSeed = mkSeed ((unSeed seed) + i)
 
 seedRange :: Int -> Int -> Seed -> Array (Tuple Int Seed)
 seedRange begin end s = scanl seedHelper (Tuple 0 s) (range begin end)
@@ -259,7 +271,7 @@ generateMap s =
         , generateTowers
             floorGround
             s
-        --, generateTowers enemies s
+        , generateTowers enemies s
         ]
   , foreground: concat [ (generateTowers decor s) ]
   , background: concat [ backgroundDecor, (generateTowers background s) ]
