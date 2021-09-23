@@ -33,6 +33,7 @@ step gameMap keys =
   where
   player = find isPlayer gameMap.objects
 
+updateObjects :: Maybe (GameObject ObjectType) -> Set.Set String -> Objects ObjectType -> Objects ObjectType
 updateObjects player keys =
   map updateObject
     >>> handleObjectCollisions handleCollision
@@ -186,6 +187,4 @@ handleCollision x@{ type: None } y@{ type: Player } = throwAway x y
 
 handleCollision x@{ type: Bomb } y@{ type: Bomb } = bounce x y
 
---handleCollision x@{ type: Bomb } y = fall x y
---handleCollision x@{ type: None } y = bounce x y
 handleCollision x y = y

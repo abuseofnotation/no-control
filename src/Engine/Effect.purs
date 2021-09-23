@@ -47,13 +47,10 @@ loop fn beginningMap = do
     pure unit
 
 renderLayer :: forall a. Context2D -> Objects a -> Effect Unit
-renderLayer ctx o =
-  Data.traverse_
-    ( \object -> do
-        setFillStyle ctx object.characteristics.color
-        fillPath ctx $ rect ctx object.position
-    )
-    o
+renderLayer ctx =
+  Data.traverse_ \object -> do
+    setFillStyle ctx object.characteristics.color
+    fillPath ctx $ rect ctx object.position
 
 renderFrame :: forall a. Context2D -> Map a -> Effect (Map a)
 renderFrame ctx gameMap = do

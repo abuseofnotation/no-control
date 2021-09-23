@@ -70,4 +70,5 @@ checkIfReallyColliding f a b =
   else
     f a b
 
-notColliding h a b = h.ending a < h.beginning b || h.ending b < h.beginning a 
+notColliding :: forall a. BoundaryAccessor a -> GameObject a -> GameObject a -> Boolean
+notColliding h a b = h.ending a < h.beginning b || h.ending b < h.beginning a
