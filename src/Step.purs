@@ -171,7 +171,7 @@ throwAway _ a =
       a.type
   , energy:
       { x: -20.0
-      , y: -10.0
+      , y: 10.0
       }
   }
 
